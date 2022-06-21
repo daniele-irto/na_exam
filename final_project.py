@@ -233,32 +233,20 @@ from scipy.misc import derivative
 #
 # ### 1. One dimensional matrices
 # Write a function that, given the number of Chebishev points `n`, returns `K`, `M`, and `A` for a one dimensional problem, integrated exactly using Gauss quadrature formulas with the correct number of quadrature points 
-# -
-
-def get_e(n):
-    e = np.zeros((n, n))
-    for i in range(n):
-        e[i, i] = 1
-    return e
-
-
-def get_basis(n, e, X, i):
-    v = lagrange(X, e[i])
-    return v
-
 
 # + pycharm={"name": "#%%\n"}
 def compute_one_dimensional_matrices(n):
 
-    e = get_e(n)  # matrix with i-th row all 0s except i-th index
-    X = np.polynomial.chebyshev.chebpts2(n)  # interpolation points
+    x = np.polynomial.chebyshev.chebpts2(n)  # interpolation points
     q, w = np.polynomial.legendre.leggauss(n)  # quadrature points and weights
 
     B = np.zeros((n, n))
     D = np.zeros((n, n))
 
-    for i in range(0, n):
-        v = get_basis(n, e, X, i)
+    for i in range(n):
+        e = np.zeros((n))
+        e[i] = 1
+        v = lagrange(x, e)
         for alpha in range(0, n):
             B[i, alpha] = v(q[alpha])
             D[i, alpha] = derivative(v, q[alpha])
@@ -272,13 +260,7 @@ def compute_one_dimensional_matrices(n):
 
 # -
 
-K, M, A = compute_one_dimensional_matrices(2)
-
-K
-
-M
-
-A
+compute_one_dimensional_matrices(2)
 
 
 # + [markdown] pycharm={"name": "#%% md\n"}
@@ -295,6 +277,21 @@ A
 # Use $f$ to compute the right hand side of your problem, and solve the problem (using `linalg.solve`) for increasing numbers of Chebishev points. Compute the $L^2$ error between the exact solution and the computed approximation, using a higher order quadrature w.r.t. what you used to assemble the matrices. 
 #
 # Plot the error as a function of $n$, for $n$ in $[10,...,20]$.
+# -
+
+def get_f(n, rhs, x):
+    q, w = np.polynomial.legendre.leggauss(2*n)
+    f = np.zeros((n))
+    for i in range(n):
+        e = np.zeros((n))
+        e[i] = 1
+        v = lagrange(x, e)
+        res = 0
+        for alpha in range(2*n):
+            res += v(q[alpha]) * rhs(q[alpha]) * w[alpha]
+        f[i] = res
+    return f
+
 
 # + pycharm={"name": "#%%\n"}
 def exact_one_d(x):
@@ -308,13 +305,17 @@ def rhs_one_d(x):
 
 
 def compute_error_one_d(n, exact, rhs):
-    # Replace this with you implementation
-    error = 1/n
+    x = np.polynomial.chebyshev.chebpts2(n)
+    q, w = np.polynomial.legendre.leggauss(n)
+    K, M, A = compute_one_dimensional_matrices(n) 
+    f = get_f(n, rhs, x)
+    u = np.linalg.solve(A, f)
+    error = np.sum(np.power(exact(x) - u, 2))
     return error
 
 
 error = []
-all_n = range(10, 20)
+all_n = range(10, 21)
 for n in all_n:
     error.append(compute_error_one_d(n, exact_one_d, rhs_one_d))
 
