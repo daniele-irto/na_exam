@@ -250,17 +250,16 @@ def get_basis(n, e, X, i):
 # + pycharm={"name": "#%%\n"}
 def compute_one_dimensional_matrices(n):
 
-    p = 2
     e = get_e(n)  # matrix with i-th row all 0s except i-th index
     X = np.polynomial.chebyshev.chebpts2(n)  # interpolation points
-    q, w = np.polynomial.legendre.leggauss(p)  # quadrature points and weights
+    q, w = np.polynomial.legendre.leggauss(n)  # quadrature points and weights
 
-    B = np.zeros((p+1, len(q)))
-    D = np.zeros((p+1, len(q)))
+    B = np.zeros((n, n))
+    D = np.zeros((n, n))
 
-    for i in range(0, p+1):
+    for i in range(0, n):
         v = get_basis(n, e, X, i)
-        for alpha in range(0, len(q)):
+        for alpha in range(0, n):
             B[i, alpha] = v(q[alpha])
             D[i, alpha] = derivative(v, q[alpha])
 
@@ -273,7 +272,7 @@ def compute_one_dimensional_matrices(n):
 
 # -
 
-K, M, A = compute_one_dimensional_matrices(10)
+K, M, A = compute_one_dimensional_matrices(2)
 
 K
 
@@ -296,22 +295,16 @@ A
 # Use $f$ to compute the right hand side of your problem, and solve the problem (using `linalg.solve`) for increasing numbers of Chebishev points. Compute the $L^2$ error between the exact solution and the computed approximation, using a higher order quadrature w.r.t. what you used to assemble the matrices. 
 #
 # Plot the error as a function of $n$, for $n$ in $[10,...,20]$.
-# -
-
-def get_delta_u(u, x):
-    return derivative(u, x, n=2)
-
 
 # + pycharm={"name": "#%%\n"}
 def exact_one_d(x):
-    x = np.cos(np.pi * x)
-    return x
+    u = np.cos(np.pi * x)
+    return u
 
 
 def rhs_one_d(x):
-    u = exact_one_d(x)
-    delta_u = get_delta_u(u, x)
-    return -delta_u + u
+    rhs = np.cos(np.pi * x) * (1 + np.pi**2)
+    return rhs
 
 
 def compute_error_one_d(n, exact, rhs):
@@ -321,18 +314,19 @@ def compute_error_one_d(n, exact, rhs):
 
 
 error = []
-all_n = range(10,20)
+all_n = range(10, 20)
 for n in all_n:
     error.append(compute_error_one_d(n, exact_one_d, rhs_one_d))
 
-#np.loglog(all_n, error, 'o-')
+plt.loglog(all_n, error, 'o-')
+
 
 # + [markdown] pycharm={"name": "#%% md\n"}
 # ### 3. Two dimensional matrices
 #
 # Write a function that, given the number of Chebishev points `n` per each coordinate direction, returns `K`, `M`, and `A` for a two dimensional problem, integrated exactly using Gauss quadrature formulas with the correct number of quadrature points (as matrices, i.e., reshaped to be two dimensional)
 
-# + jupyter={"outputs_hidden": true} pycharm={"name": "#%%\n"}
+# + pycharm={"name": "#%%\n"} tags=[]
 # your code here
 
 # + [markdown] pycharm={"name": "#%% md\n"}
@@ -356,7 +350,7 @@ for n in all_n:
 #
 # Plot the error as a function of $n$, for $n$ in $[10,...,20]$.
 
-# + jupyter={"outputs_hidden": true} pycharm={"name": "#%%\n"}
+# + pycharm={"name": "#%%\n"} tags=[]
 # your code here
 
 # + [markdown] pycharm={"name": "#%% md\n"}
