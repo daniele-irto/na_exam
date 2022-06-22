@@ -265,7 +265,7 @@ def compute_one_dimensional_matrices(n):
 # Plot the error as a function of $n$, for $n$ in $[10,...,20]$.
 # -
 
-def get_f(n, rhs, x):
+def f_one_d(n, rhs, x):
 
     m = 2*n
     q, w = np.polynomial.legendre.leggauss(m)
@@ -291,8 +291,8 @@ def rhs_one_d(x):
 def compute_error_one_d(n, exact, rhs, print_err=False, plot=False):
 
     x = np.polynomial.chebyshev.chebpts2(n)
-    _, _, A = compute_one_dimensional_matrices(n) 
-    f = get_f(n, rhs, x)
+    *_, A = compute_one_dimensional_matrices(n) 
+    f = f_one_d(n, rhs, x)
     u_approx = np.linalg.solve(A, f)
     error = np.sum(np.power(exact(x) - u_approx, 2))
     error = np.linalg.norm(exact(x) - u_approx, ord=2)
@@ -301,20 +301,20 @@ def compute_error_one_d(n, exact, rhs, print_err=False, plot=False):
         plt.plot(x, exact(x), color='green', label='exact')
         plt.plot(x, u_approx, color='red', label='approx')
         plt.legend()
+
     if print_err:
         print(f'{n}: {error}')
+
     return error
 
 
+# + pycharm={"name": "#%%\n"} tags=[]
 error = []
 all_n = range(10, 21)
 for n in all_n:
     error.append(compute_error_one_d(n, exact_one_d, rhs_one_d))
 
 plt.loglog(all_n, error, 'o-')
-# -
-
-compute_error_one_d(30, exact_one_d, rhs_one_d, plot=True)
 
 
 # + [markdown] pycharm={"name": "#%% md\n"}
@@ -323,7 +323,21 @@ compute_error_one_d(30, exact_one_d, rhs_one_d, plot=True)
 # Write a function that, given the number of Chebishev points `n` per each coordinate direction, returns `K`, `M`, and `A` for a two dimensional problem, integrated exactly using Gauss quadrature formulas with the correct number of quadrature points (as matrices, i.e., reshaped to be two dimensional)
 
 # + pycharm={"name": "#%%\n"} tags=[]
-# your code here
+def compute_two_dimensional_matrices(n):
+
+    K, M, _ = compute_one_dimensional_matrices(n)
+    q, w = np.polynomial.legendre.leggauss(n)  # quadrature points and weights
+
+    KM = np.einsum('ik, jl -> ijkl', K, M)
+    MK = np.einsum('ik, jl -> ijkl', M, K)
+    MM = np.einsum('ik, jl -> ijkl', M, M)
+    KK = KM + MK
+
+    AA = KK + MM
+    AA.reshape((n**2, n**2))
+
+    return KK, MM, AA
+
 
 # + [markdown] pycharm={"name": "#%% md\n"}
 # ### 3. Error in two dimension
@@ -345,9 +359,51 @@ compute_error_one_d(30, exact_one_d, rhs_one_d, plot=True)
 # The plot was obtained as `imshow(u.reshape((n,n))`.
 #
 # Plot the error as a function of $n$, for $n$ in $[10,...,20]$.
+# -
+
+def f_two_d(n, rhs, x):
+    # TODO
+    m = 2*n
+    q, w = np.polynomial.legendre.leggauss(m)
+    f = np.zeros((n))
+
+    for i in range(n):
+        ei = get_e(n, i)
+        v = lagrange(x, ei)
+        f[i] = np.sum(v(q) * rhs(q) * w)
+
+    return f
+
 
 # + pycharm={"name": "#%%\n"} tags=[]
-# your code here
+# TODO
+def exact_two_d(x):
+    return np.cos(np.pi * x)
+
+
+def rhs_two_d(x):
+    return np.cos(np.pi * x) * (1 + np.pi**2)
+
+
+def compute_error_two_d(n, exact, rhs, print_err=False, plot=False):
+
+    x = np.polynomial.chebyshev.chebpts2(n)
+    *_, A = compute_one_dimensional_matrices(n) 
+    f = f_one_d(n, rhs, x)
+    u_approx = np.linalg.solve(A, f)
+    error = np.sum(np.power(exact(x) - u_approx, 2))
+    error = np.linalg.norm(exact(x) - u_approx, ord=2)
+
+    if plot:
+        plt.plot(x, exact(x), color='green', label='exact')
+        plt.plot(x, u_approx, color='red', label='approx')
+        plt.legend()
+
+    if print_err:
+        print(f'{n}: {error}')
+
+    return error
+
 
 # + [markdown] pycharm={"name": "#%% md\n"}
 # ### 4. Conjugate gradient
