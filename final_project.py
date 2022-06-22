@@ -217,7 +217,12 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.interpolate import lagrange
-from scipy.misc import derivative
+
+
+def get_e(n, i):
+    e = np.zeros((n))
+    e[i] = 1
+    return e
 
 
 # + pycharm={"name": "#%%\n"}
@@ -230,12 +235,11 @@ def compute_one_dimensional_matrices(n):
     D = np.zeros((n, n))
 
     for i in range(n):
-        e = np.zeros((n))
-        e[i] = 1
-        v = lagrange(x, e)
+        ei = get_e(n, i)
+        v = lagrange(x, ei)
         for alpha in range(n):
             B[i, alpha] = v(q[alpha])
-            D[i, alpha] = derivative(v, q[alpha])
+            D[i, alpha] = np.polyder(v)(q[alpha])
 
     K = np.einsum('iq, q, jq', D, w, D)
     M = np.einsum('iq, q, jq', B, w, B)
@@ -246,7 +250,7 @@ def compute_one_dimensional_matrices(n):
 
 # -
 
-compute_one_dimensional_matrices(2)
+compute_one_dimensional_matrices(5)
 
 
 # + [markdown] pycharm={"name": "#%% md\n"}
@@ -266,23 +270,20 @@ compute_one_dimensional_matrices(2)
 # -
 
 def get_f(n, rhs, x):
+
     m = 2*n
     q, w = np.polynomial.legendre.leggauss(m)
     f = np.zeros((n))
 
     for i in range(n):
-        e = np.zeros((n))
-        e[i] = 1
-        v = lagrange(x, e)
-        res = 0
-        for alpha in range(m):
-            res = res + v(q[alpha]) * rhs(q[alpha]) * w[alpha]
-        f[i] = res
+        ei = get_e(n, i)
+        v = lagrange(x, ei)
+        f[i] = np.sum(v(q) * rhs(q) * w)
 
     return f
 
 
-# + pycharm={"name": "#%%\n"}
+# + pycharm={"name": "#%%\n"} tags=[]
 def exact_one_d(x):
     return np.cos(np.pi * x)
 
@@ -291,13 +292,19 @@ def rhs_one_d(x):
     return np.cos(np.pi * x) * (1 + np.pi**2)
 
 
-def compute_error_one_d(n, exact, rhs):
+def compute_error_one_d(n, exact, rhs, plot=False):
+
     x = np.polynomial.chebyshev.chebpts2(n)
-    q, w = np.polynomial.legendre.leggauss(n)
     _, _, A = compute_one_dimensional_matrices(n) 
     f = get_f(n, rhs, x)
-    u = np.linalg.solve(A, f)
-    error = np.sum(np.power(exact(x) - u, 2))
+    u_approx = np.linalg.solve(A, f)
+    error = np.sum(np.power(exact(x) - u_approx, 2))
+
+    if plot:
+        plt.plot(x, exact(x), color='green', label='exact')
+        plt.plot(x, u_approx, color='red', label='approx')
+        plt.legend()
+
     return error
 
 
@@ -307,6 +314,9 @@ for n in all_n:
     error.append(compute_error_one_d(n, exact_one_d, rhs_one_d))
 
 plt.loglog(all_n, error, 'o-')
+# -
+
+compute_error_one_d(20, exact_one_d, rhs_one_d, plot=True)
 
 
 # + [markdown] pycharm={"name": "#%% md\n"}
