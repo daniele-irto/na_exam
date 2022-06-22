@@ -13,27 +13,6 @@
 #     name: python3
 # ---
 
-import numpy as np
-import matplotlib.pyplot as plt
-from scipy.interpolate import lagrange
-from scipy.misc import derivative
-
-
-# + active=""
-# X = np.polynomial.chebyshev.chebpts2(6)
-# e_3 = np.zeros((6,))
-# e_3[3] = 1
-#
-# B_3 = lagrange(X, e_3)
-# B_3_prime = np.polyder(B_3)
-#
-# x = np.linspace(-1,1,501)
-# plt.plot(x, B_3(x))
-# plt.plot(X, 0*X, 'ro')
-# plt.figure()
-# plt.plot(x, B_3_prime(x))
-# plt.plot(X, 0*X, 'ro')
-
 # + [markdown] pycharm={"name": "#%% md\n"}
 # # Final project -- Numerical Analysis -- 2020/2021
 #
@@ -233,6 +212,13 @@ from scipy.misc import derivative
 #
 # ### 1. One dimensional matrices
 # Write a function that, given the number of Chebishev points `n`, returns `K`, `M`, and `A` for a one dimensional problem, integrated exactly using Gauss quadrature formulas with the correct number of quadrature points 
+# -
+
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.interpolate import lagrange
+from scipy.misc import derivative
+
 
 # + pycharm={"name": "#%%\n"}
 def compute_one_dimensional_matrices(n):
@@ -247,7 +233,7 @@ def compute_one_dimensional_matrices(n):
         e = np.zeros((n))
         e[i] = 1
         v = lagrange(x, e)
-        for alpha in range(0, n):
+        for alpha in range(n):
             B[i, alpha] = v(q[alpha])
             D[i, alpha] = derivative(v, q[alpha])
 
@@ -280,34 +266,35 @@ compute_one_dimensional_matrices(2)
 # -
 
 def get_f(n, rhs, x):
-    q, w = np.polynomial.legendre.leggauss(2*n)
+    m = 2*n
+    q, w = np.polynomial.legendre.leggauss(m)
     f = np.zeros((n))
+
     for i in range(n):
         e = np.zeros((n))
         e[i] = 1
         v = lagrange(x, e)
         res = 0
-        for alpha in range(2*n):
-            res += v(q[alpha]) * rhs(q[alpha]) * w[alpha]
+        for alpha in range(m):
+            res = res + v(q[alpha]) * rhs(q[alpha]) * w[alpha]
         f[i] = res
+
     return f
 
 
 # + pycharm={"name": "#%%\n"}
 def exact_one_d(x):
-    u = np.cos(np.pi * x)
-    return u
+    return np.cos(np.pi * x)
 
 
 def rhs_one_d(x):
-    rhs = np.cos(np.pi * x) * (1 + np.pi**2)
-    return rhs
+    return np.cos(np.pi * x) * (1 + np.pi**2)
 
 
 def compute_error_one_d(n, exact, rhs):
     x = np.polynomial.chebyshev.chebpts2(n)
     q, w = np.polynomial.legendre.leggauss(n)
-    K, M, A = compute_one_dimensional_matrices(n) 
+    _, _, A = compute_one_dimensional_matrices(n) 
     f = get_f(n, rhs, x)
     u = np.linalg.solve(A, f)
     error = np.sum(np.power(exact(x) - u, 2))
@@ -368,7 +355,7 @@ plt.loglog(all_n, error, 'o-')
 #
 # build a conjugate gradient method that only uses the function `matvec` to evaluate `A.dot(src)`. 
 
-# + jupyter={"outputs_hidden": true} pycharm={"name": "#%%\n"}
+# + pycharm={"name": "#%%\n"}
 def cg(matvec, b, x0, tol=1e-05, maxiter=10000):
     # inside this function, you can call matvec(b) to evaluate the matrix vector 
     x = x0.copy()
@@ -417,7 +404,7 @@ def cg(matvec, b, x0, tol=1e-05, maxiter=10000):
 #
 # Make a comparison of the timings between using the full two dimensional matrix `A` to compute the matrix vector product, VS using the compressed version above, as we increase `n` from 50 to 100.
 
-# + jupyter={"outputs_hidden": true} pycharm={"name": "#%%\n"}
+# + pycharm={"name": "#%%\n"}
 # your code here
 
 # + [markdown] pycharm={"name": "#%% md\n"}
@@ -434,5 +421,5 @@ def cg(matvec, b, x0, tol=1e-05, maxiter=10000):
 #
 # Comment on your findings.
 
-# + jupyter={"outputs_hidden": true} pycharm={"name": "#%%\n"}
+# + pycharm={"name": "#%%\n"}
 # your code here
