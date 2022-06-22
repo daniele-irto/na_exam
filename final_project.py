@@ -237,20 +237,16 @@ def compute_one_dimensional_matrices(n):
     for i in range(n):
         ei = get_e(n, i)
         v = lagrange(x, ei)
+        v_prime = np.polyder(v)
         for alpha in range(n):
             B[i, alpha] = v(q[alpha])
-            D[i, alpha] = np.polyder(v)(q[alpha])
+            D[i, alpha] = v_prime(q[alpha])
 
     K = np.einsum('iq, q, jq', D, w, D)
     M = np.einsum('iq, q, jq', B, w, B)
     A = K + M
 
     return K, M, A
-
-
-# -
-
-compute_one_dimensional_matrices(5)
 
 
 # + [markdown] pycharm={"name": "#%% md\n"}
@@ -292,19 +288,21 @@ def rhs_one_d(x):
     return np.cos(np.pi * x) * (1 + np.pi**2)
 
 
-def compute_error_one_d(n, exact, rhs, plot=False):
+def compute_error_one_d(n, exact, rhs, print_err=False, plot=False):
 
     x = np.polynomial.chebyshev.chebpts2(n)
     _, _, A = compute_one_dimensional_matrices(n) 
     f = get_f(n, rhs, x)
     u_approx = np.linalg.solve(A, f)
     error = np.sum(np.power(exact(x) - u_approx, 2))
+    error = np.linalg.norm(exact(x) - u_approx, ord=2)
 
     if plot:
         plt.plot(x, exact(x), color='green', label='exact')
         plt.plot(x, u_approx, color='red', label='approx')
         plt.legend()
-
+    if print_err:
+        print(f'{n}: {error}')
     return error
 
 
@@ -316,7 +314,7 @@ for n in all_n:
 plt.loglog(all_n, error, 'o-')
 # -
 
-compute_error_one_d(20, exact_one_d, rhs_one_d, plot=True)
+compute_error_one_d(30, exact_one_d, rhs_one_d, plot=True)
 
 
 # + [markdown] pycharm={"name": "#%% md\n"}
