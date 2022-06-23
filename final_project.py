@@ -230,7 +230,7 @@ def compute_one_dimensional_matrices(n):
 
     q, w = np.polynomial.legendre.leggauss(n)
     x = np.polynomial.chebyshev.chebpts2(n)
-    
+
     B = np.zeros((n, n))
     D = np.zeros((n, n))
 
@@ -286,13 +286,13 @@ def exact_one_d(x):
 
 
 def rhs_one_d(x):
-    return np.cos(np.pi * x) * (1 + np.pi**2)
+    return (1 + np.pi**2) * exact_one_d(x)
 
 
 def compute_error_one_d(n, exact, rhs, print_err=False, plot=False):
 
     x = np.polynomial.chebyshev.chebpts2(n)
-    B, *_, A = compute_one_dimensional_matrices(n) 
+    *_, A = compute_one_dimensional_matrices(n)
     f = f_one_d(n, 2*n, rhs, x)
     approx = np.linalg.solve(A, f)
 
@@ -384,18 +384,16 @@ def exact_two_d(x, y):
 
 
 def rhs_two_d(x, y):
-    return (1+2*(np.pi**2)) * np.cos(np.pi * x) * np.cos(np.pi * y)
+    return (1 + 2*(np.pi**2)) * exact_two_d(x, y)
+
 
 def compute_error_two_d(n, exact, rhs, print_err=False, plot=False):
 
     x = np.polynomial.chebyshev.chebpts2(n)
     xg, yg = np.meshgrid(x, x)
-
-    B, *_, A = compute_two_dimensional_matrices(n)
-
+    *_, A = compute_two_dimensional_matrices(n)
     f = f_two_d(n, rhs, x)
-    approx = np.linalg.solve(A, f)
-    approx = approx.reshape((n, n))
+    approx = np.linalg.solve(A, f).reshape((n, n))
 
     error = np.linalg.norm(exact(xg, yg) - approx, ord=2)
 
@@ -436,7 +434,7 @@ compute_error_two_d(30, exact_two_d, rhs_two_d, plot=True)
 
 # + pycharm={"name": "#%%\n"}
 def cg(matvec, b, x0, tol=1e-05, maxiter=10000):
-    # inside this function, you can call matvec(b) to evaluate the matrix vector 
+    # inside this function, you can call matvec(b) to evaluate the matrix vector
     x = x0.copy()
     return x
 
