@@ -13,7 +13,7 @@
 #     name: python3
 # ---
 
-# + [markdown] pycharm={"name": "#%% md\n"}
+# + [markdown] pycharm={"name": "#%% md\n"} tags=[]
 # # Final project -- Numerical Analysis -- 2020/2021
 #
 # ## General goal
@@ -226,21 +226,21 @@ def get_e(n, i):
 
 
 # + pycharm={"name": "#%%\n"}
-def compute_one_dimensional_matrices(n):
+def compute_one_dimensional_matrices(n, nq=None):
 
-    x = np.polynomial.chebyshev.chebpts2(n)  # interpolation points
-    q, w = np.polynomial.legendre.leggauss(n)  # quadrature points and weights
+    nq = nq if nq else n
 
-    B = np.zeros((n, n))
-    D = np.zeros((n, n))
+    q, w = np.polynomial.legendre.leggauss(n)
+    x = np.polynomial.chebyshev.chebpts2(n)
+    B = np.zeros((n, nq))
+    D = np.zeros((n, nq))
 
     for i in range(n):
         ei = get_e(n, i)
         v = lagrange(x, ei)
         v_prime = np.polyder(v)
-        for alpha in range(n):
-            B[i, alpha] = v(q[alpha])
-            D[i, alpha] = v_prime(q[alpha])
+        B[i, :] = v(q)
+        D[i, :] = v_prime(q)
 
     K = np.einsum('iq, q, jq', D, w, D)
     M = np.einsum('iq, q, jq', B, w, B)
@@ -265,17 +265,19 @@ def compute_one_dimensional_matrices(n):
 # Plot the error as a function of $n$, for $n$ in $[10,...,20]$.
 # -
 
-def f_one_d(n, B, rhs, x):
+def f_one_d(n, nq, rhs, x):
 
-    nq = 2*n
+    nq = nq if nq else n
     q, w = np.polynomial.legendre.leggauss(nq)
-    f = np.zeros((n))
+    B = np.zeros((n, nq))
 
     for i in range(n):
         ei = get_e(n, i)
         v = lagrange(x, ei)
-        f[i] = np.sum(v(q) * rhs(q) * w)
+        B[i, :] = v(q)
 
+    f = np.einsum('ia, a, a -> i', B, rhs(q), w)
+    
     return f
 
 
@@ -292,7 +294,7 @@ def compute_error_one_d(n, exact, rhs, print_err=False, plot=False):
 
     x = np.polynomial.chebyshev.chebpts2(n)
     B, *_, A = compute_one_dimensional_matrices(n) 
-    f = f_one_d(n, B, rhs, x)
+    f = f_one_d(n, 2*n, rhs, x)
     approx = np.linalg.solve(A, f)
 
     error = np.linalg.norm(exact(x) - approx, ord=2)
@@ -358,15 +360,28 @@ def compute_two_dimensional_matrices(n):
 # The plot was obtained as `imshow(u.reshape((n,n))`.
 #
 # Plot the error as a function of $n$, for $n$ in $[10,...,20]$.
+
+# + tags=[]
+n = 3
+x = np.polynomial.chebyshev.chebpts2(n)
+f_two_d(n, rhs_two_d, x)
+
+
 # -
 
-def f_two_d(n, B, rhs):
+def f_two_d(n, rhs, x):
 
-    nq = n
+    nq = 2*n
     q, w = np.polynomial.legendre.leggauss(nq)
     qx, qy = np.meshgrid(q, q)
+    B = np.empty((n, nq))
 
-    f = np.einsum('ia, jb, ab, a, b  -> ij', rhs(qx, qy), B, B, w, w)
+    for i in range(n):
+        ei = get_e(n, i)
+        v = lagrange(x, ei)
+        B[i, :] = v(q)
+
+    f = np.einsum('ab, ia, jb, a, b -> ij', rhs(qx, qy), B, B, w, w)
 
     return f.reshape(n**2)
 
@@ -377,8 +392,7 @@ def exact_two_d(x, y):
 
 
 def rhs_two_d(x, y):
-    return np.cos(np.pi * x) * np.cos(np.pi * y) * (1 - 2*np.pi)
-
+    return (1+2*(np.pi**2)) * np.cos(np.pi * x) * np.cos(np.pi * y)
 
 def compute_error_two_d(n, exact, rhs, print_err=False, plot=False):
 
@@ -387,7 +401,7 @@ def compute_error_two_d(n, exact, rhs, print_err=False, plot=False):
 
     B, *_, A = compute_two_dimensional_matrices(n)
 
-    f = f_two_d(n, B, rhs)
+    f = f_two_d(n, rhs, x)
     approx = np.linalg.solve(A, f)
     approx = approx.reshape((n, n))
 
