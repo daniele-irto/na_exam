@@ -226,14 +226,13 @@ def get_e(n, i):
 
 
 # + pycharm={"name": "#%%\n"}
-def compute_one_dimensional_matrices(n, nq=None):
-
-    nq = nq if nq else n
+def compute_one_dimensional_matrices(n):
 
     q, w = np.polynomial.legendre.leggauss(n)
     x = np.polynomial.chebyshev.chebpts2(n)
-    B = np.zeros((n, nq))
-    D = np.zeros((n, nq))
+    
+    B = np.zeros((n, n))
+    D = np.zeros((n, n))
 
     for i in range(n):
         ei = get_e(n, i)
@@ -277,7 +276,7 @@ def f_one_d(n, nq, rhs, x):
         B[i, :] = v(q)
 
     f = np.einsum('ia, a, a -> i', B, rhs(q), w)
-    
+
     return f
 
 
@@ -360,13 +359,6 @@ def compute_two_dimensional_matrices(n):
 # The plot was obtained as `imshow(u.reshape((n,n))`.
 #
 # Plot the error as a function of $n$, for $n$ in $[10,...,20]$.
-
-# + tags=[]
-n = 3
-x = np.polynomial.chebyshev.chebpts2(n)
-f_two_d(n, rhs_two_d, x)
-
-
 # -
 
 def f_two_d(n, rhs, x):
@@ -423,6 +415,9 @@ for n in all_n:
     error.append(compute_error_two_d(n, exact_two_d, rhs_two_d))
 
 plt.loglog(all_n, error, 'o-')
+# -
+
+compute_error_two_d(30, exact_two_d, rhs_two_d, plot=True)
 
 
 # + [markdown] pycharm={"name": "#%% md\n"}
