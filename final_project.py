@@ -246,7 +246,7 @@ def compute_one_dimensional_matrices(n):
     M = np.einsum('iq, q, jq', B, w, B)
     A = K + M
 
-    return K, M, A
+    return B, K, M, A
 
 
 # + [markdown] pycharm={"name": "#%% md\n"}
@@ -265,10 +265,10 @@ def compute_one_dimensional_matrices(n):
 # Plot the error as a function of $n$, for $n$ in $[10,...,20]$.
 # -
 
-def f_one_d(n, rhs, x):
+def f_one_d(n, B, rhs, x):
 
-    m = 2*n
-    q, w = np.polynomial.legendre.leggauss(m)
+    nq = 2*n
+    q, w = np.polynomial.legendre.leggauss(nq)
     f = np.zeros((n))
 
     for i in range(n):
@@ -291,15 +291,15 @@ def rhs_one_d(x):
 def compute_error_one_d(n, exact, rhs, print_err=False, plot=False):
 
     x = np.polynomial.chebyshev.chebpts2(n)
-    *_, A = compute_one_dimensional_matrices(n) 
-    f = f_one_d(n, rhs, x)
-    u_approx = np.linalg.solve(A, f)
-    error = np.sum(np.power(exact(x) - u_approx, 2))
-    error = np.linalg.norm(exact(x) - u_approx, ord=2)
+    B, *_, A = compute_one_dimensional_matrices(n) 
+    f = f_one_d(n, B, rhs, x)
+    approx = np.linalg.solve(A, f)
+
+    error = np.linalg.norm(exact(x) - approx, ord=2)
 
     if plot:
         plt.plot(x, exact(x), color='green', label='exact')
-        plt.plot(x, u_approx, color='red', label='approx')
+        plt.plot(x, approx, color='red', label='approx')
         plt.legend()
 
     if print_err:
@@ -325,8 +325,7 @@ plt.loglog(all_n, error, 'o-')
 # + pycharm={"name": "#%%\n"} tags=[]
 def compute_two_dimensional_matrices(n):
 
-    K, M, _ = compute_one_dimensional_matrices(n)
-    q, w = np.polynomial.legendre.leggauss(n)  # quadrature points and weights
+    B, K, M, _ = compute_one_dimensional_matrices(n)
 
     KM = np.einsum('ik, jl -> ijkl', K, M)
     MK = np.einsum('ik, jl -> ijkl', M, K)
@@ -334,9 +333,9 @@ def compute_two_dimensional_matrices(n):
     KK = KM + MK
 
     AA = KK + MM
-    AA.reshape((n**2, n**2))
+    AA = AA.reshape((n**2, n**2))
 
-    return KK, MM, AA
+    return B, KK, MM, AA
 
 
 # + [markdown] pycharm={"name": "#%% md\n"}
@@ -361,48 +360,55 @@ def compute_two_dimensional_matrices(n):
 # Plot the error as a function of $n$, for $n$ in $[10,...,20]$.
 # -
 
-def f_two_d(n, rhs, x):
-    # TODO
-    m = 2*n
-    q, w = np.polynomial.legendre.leggauss(m)
-    f = np.zeros((n))
+def f_two_d(n, B, rhs):
 
-    for i in range(n):
-        ei = get_e(n, i)
-        v = lagrange(x, ei)
-        f[i] = np.sum(v(q) * rhs(q) * w)
+    nq = n
+    q, w = np.polynomial.legendre.leggauss(nq)
+    qx, qy = np.meshgrid(q, q)
 
-    return f
+    f = np.einsum('ia, jb, ab, a, b  -> ij', rhs(qx, qy), B, B, w, w)
+
+    return f.reshape(n**2)
 
 
 # + pycharm={"name": "#%%\n"} tags=[]
-# TODO
-def exact_two_d(x):
-    return np.cos(np.pi * x)
+def exact_two_d(x, y):
+    return np.cos(np.pi * x) * np.cos(np.pi * y)
 
 
-def rhs_two_d(x):
-    return np.cos(np.pi * x) * (1 + np.pi**2)
+def rhs_two_d(x, y):
+    return np.cos(np.pi * x) * np.cos(np.pi * y) * (1 - 2*np.pi)
 
 
 def compute_error_two_d(n, exact, rhs, print_err=False, plot=False):
 
     x = np.polynomial.chebyshev.chebpts2(n)
-    *_, A = compute_one_dimensional_matrices(n) 
-    f = f_one_d(n, rhs, x)
-    u_approx = np.linalg.solve(A, f)
-    error = np.sum(np.power(exact(x) - u_approx, 2))
-    error = np.linalg.norm(exact(x) - u_approx, ord=2)
+    xg, yg = np.meshgrid(x, x)
+
+    B, *_, A = compute_two_dimensional_matrices(n)
+
+    f = f_two_d(n, B, rhs)
+    approx = np.linalg.solve(A, f)
+    approx = approx.reshape((n, n))
+
+    error = np.linalg.norm(exact(xg, yg) - approx, ord=2)
 
     if plot:
-        plt.plot(x, exact(x), color='green', label='exact')
-        plt.plot(x, u_approx, color='red', label='approx')
-        plt.legend()
+        plt.imshow(approx.reshape((n, n)))
 
     if print_err:
         print(f'{n}: {error}')
 
     return error
+
+
+# +
+error = []
+all_n = range(10, 21)
+for n in all_n:
+    error.append(compute_error_two_d(n, exact_two_d, rhs_two_d))
+
+plt.loglog(all_n, error, 'o-')
 
 
 # + [markdown] pycharm={"name": "#%% md\n"}
