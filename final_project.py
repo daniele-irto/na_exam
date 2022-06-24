@@ -245,7 +245,7 @@ def compute_one_dimensional_matrices(n):
     M = np.einsum('iq, q, jq', B, w, B)
     A = K + M
 
-    return B, K, M, A
+    return K, M, A
 
 
 # + [markdown] pycharm={"name": "#%% md\n"}
@@ -326,7 +326,7 @@ plt.loglog(all_n, error, 'o-')
 # + pycharm={"name": "#%%\n"} tags=[]
 def compute_two_dimensional_matrices(n):
 
-    B, K, M, _ = compute_one_dimensional_matrices(n)
+    K, M, _ = compute_one_dimensional_matrices(n)
 
     KM = np.einsum('ik, jl -> ijkl', K, M)
     MK = np.einsum('ik, jl -> ijkl', M, K)
@@ -336,7 +336,7 @@ def compute_two_dimensional_matrices(n):
     AA = KK + MM
     AA = AA.reshape((n**2, n**2))
 
-    return B, KK, MM, AA
+    return KK, MM, AA
 
 
 # + [markdown] pycharm={"name": "#%% md\n"}
@@ -394,7 +394,6 @@ def compute_error_two_d(n, exact, rhs, print_err=False, plot=False):
     *_, A = compute_two_dimensional_matrices(n)
     f = f_two_d(n, rhs, x)
     approx = np.linalg.solve(A, f).reshape((n, n))
-
     error = np.linalg.norm(exact(xg, yg) - approx, ord=2)
 
     if plot:
@@ -431,12 +430,39 @@ compute_error_two_d(30, exact_two_d, rhs_two_d, plot=True)
 # ~~~
 #
 # build a conjugate gradient method that only uses the function `matvec` to evaluate `A.dot(src)`. 
+# -
+
+def matvec(src):
+    return A.dot(src)
+
 
 # + pycharm={"name": "#%%\n"}
-def cg(matvec, b, x0, tol=1e-05, maxiter=10000):
+def cg(matvec, b, x0, tol=1e-5, maxiter=10000):
     # inside this function, you can call matvec(b) to evaluate the matrix vector
+    n = len(b)
+    *_, A = compute_two_dimensional_matrices(n)
     x = x0.copy()
+
+    r = b - matvec(x)
+    p = r
+    alpha = np.zeros((maxiter,))
+
+    for k in range(maxiter):
+        alpha = (np.transpose(r) * r) / (np.transpose(p) * matvec(p))
+        x = x + alpha * p
+        r_prev = r
+        r = r - alpha * p
+        if np.linalg.norm(r, 2) < tol:
+            break
+        beta = (np.transpose(r) * r) / (np.transpose(r_prev) * r_prev)
+        p = r + beta * p
+
     return x
+
+
+# -
+
+cg(matvec, [[2, 5], [1,2]], [[2, 4],[1, 6]])
 
 # + [markdown] pycharm={"name": "#%% md\n"}
 # ### 5. "Matrix free" evaluation
