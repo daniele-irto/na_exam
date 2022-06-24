@@ -438,31 +438,25 @@ def matvec(src):
 
 # + pycharm={"name": "#%%\n"}
 def cg(matvec, b, x0, tol=1e-5, maxiter=10000):
-    # inside this function, you can call matvec(b) to evaluate the matrix vector
+
     n = len(b)
     *_, A = compute_two_dimensional_matrices(n)
+
     x = x0.copy()
-
     r = b - matvec(x)
-    p = r
-    alpha = np.zeros((maxiter,))
+    p = r.copy()
 
-    for k in range(maxiter):
-        alpha = (np.transpose(r) * r) / (np.transpose(p) * matvec(p))
+    it = 0
+    while (it <= maxiter) and (np.linalg.norm(r, 2) > tol):
+        Ap = matvec(p)
+        alpha = (np.transpose(p).dot(r)) / (np.transpose(p).dot(Ap))
         x = x + alpha * p
-        r_prev = r
-        r = r - alpha * p
-        if np.linalg.norm(r, 2) < tol:
-            break
-        beta = (np.transpose(r) * r) / (np.transpose(r_prev) * r_prev)
-        p = r + beta * p
+        r = r - alpha * Ap
+        beta = (np.transpose(Ap).dot(r)) / (np.transpose(Ap).dot(p))
+        p = r - beta * p
+        it += 1
 
-    return x
-
-
-# -
-
-cg(matvec, [[2, 5], [1,2]], [[2, 4],[1, 6]])
+    return x, it, np.linalg.norm(r, 2)
 
 # + [markdown] pycharm={"name": "#%% md\n"}
 # ### 5. "Matrix free" evaluation
