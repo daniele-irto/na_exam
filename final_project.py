@@ -217,6 +217,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.interpolate import lagrange
+import time
 
 
 def get_e(n, i):
@@ -432,8 +433,8 @@ compute_error_two_d(30, exact_two_d, rhs_two_d, plot=True)
 # build a conjugate gradient method that only uses the function `matvec` to evaluate `A.dot(src)`. 
 # -
 
-def matvec(A, src):
-    return A.dot(src)
+def matvec(A, v):
+    return A.dot(v)
 
 
 # + pycharm={"name": "#%%\n"}
@@ -485,6 +486,7 @@ for n in all_n:
 
 plt.loglog(all_n, error, 'o-')
 
+
 # + [markdown] pycharm={"name": "#%% md\n"}
 # ### 5. "Matrix free" evaluation
 #
@@ -529,7 +531,59 @@ plt.loglog(all_n, error, 'o-')
 # Make a comparison of the timings between using the full two dimensional matrix `A` to compute the matrix vector product, VS using the compressed version above, as we increase `n` from 50 to 100.
 
 # + pycharm={"name": "#%%\n"}
-# your code here
+def matvec(A, v):
+    return A.dot(v)
+
+def matvec_compressed(M, K, v):
+
+    v = v.reshape((n, n))
+
+    Mv = M.dot(v)  # result is n x n
+    Kv = K.dot(v)  # result is n x n
+
+    u = K.dot(Mv)
+    u += M.dot(Kv) + M.dot(Mv)
+
+    return u.reshape((n**2,))
+
+
+# -
+
+n = 50
+K, M, A = compute_one_dimensional_matrices(n)
+KK, MM, AA = compute_two_dimensional_matrices(n)
+v_one_d = np.random.rand(n)
+v_two_d = np.random.rand(n**2)
+
+
+def get_time(n, comp=False):
+
+    start = time.time()
+    _ = matvec_compressed(M, K, v_two_d) if comp else matvec(AA, v_two_d)
+    end = time.time()
+
+    return end-start
+
+
+# +
+times_matvec = []
+times_matvec_comp = []
+
+for n in range(50, 100):
+
+    K, M, A = compute_one_dimensional_matrices(n)
+    KK, MM, AA = compute_two_dimensional_matrices(n)
+    v_one_d = np.random.rand(n)
+    v_two_d = np.random.rand(n**2)
+
+    times_matvec.append(get_time(n, comp=False))
+    times_matvec_comp.append(get_time(n, comp=True))
+# -
+
+plt.plot(range(50, 100), times_matvec, color='blue', label='standard')
+plt.plot(range(50, 100), times_matvec_comp, color='red', label='compressed')
+plt.legend()
+plt.grid()
 
 # + [markdown] pycharm={"name": "#%% md\n"}
 # ### 6. "Matrix free" evaluation for three dimensional problems (mandatory for MHPC, optional for others)
