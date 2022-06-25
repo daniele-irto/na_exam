@@ -432,23 +432,23 @@ compute_error_two_d(30, exact_two_d, rhs_two_d, plot=True)
 # build a conjugate gradient method that only uses the function `matvec` to evaluate `A.dot(src)`. 
 # -
 
-def matvec(src):
+def matvec(A, src):
     return A.dot(src)
 
 
 # + pycharm={"name": "#%%\n"}
 def cg(matvec, b, x0, tol=1e-5, maxiter=10000):
 
-    n = len(b)
+    n = int(np.sqrt(len(b)))
     *_, A = compute_two_dimensional_matrices(n)
 
     x = x0.copy()
-    r = b - matvec(x)
+    r = b - matvec(A, x)
     p = r.copy()
 
     it = 0
     while (it <= maxiter) and (np.linalg.norm(r, 2) > tol):
-        Ap = matvec(p)
+        Ap = matvec(A, p)
         alpha = (np.transpose(p).dot(r)) / (np.transpose(p).dot(Ap))
         x = x + alpha * p
         r = r - alpha * Ap
@@ -456,7 +456,34 @@ def cg(matvec, b, x0, tol=1e-5, maxiter=10000):
         p = r - beta * p
         it += 1
 
-    return x, it, np.linalg.norm(r, 2)
+    x = x.reshape((n, n))
+
+    return x
+
+
+# -
+
+def test_cg(n, matvec, rhs, exact):
+
+    x = np.polynomial.chebyshev.chebpts2(n)
+    xg, yg = np.meshgrid(x, x)
+    *_, A = compute_two_dimensional_matrices(n)
+    f = f_two_d(n, rhs, x)
+
+    approx_cg = cg(matvec, f, np.ones(n**2))
+
+    error = np.linalg.norm(exact(xg, yg) - approx_cg, ord=2)
+
+    return error
+
+
+# +
+error = []
+all_n = range(10, 21)
+for n in all_n:
+    error.append(test_cg(n, matvec, rhs_two_d, exact_two_d))
+
+plt.loglog(all_n, error, 'o-')
 
 # + [markdown] pycharm={"name": "#%% md\n"}
 # ### 5. "Matrix free" evaluation
