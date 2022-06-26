@@ -374,7 +374,7 @@ def f_two_d(n, rhs, x):
         v = lagrange(x, ei)
         B[i, :] = v(q)
 
-    f = np.einsum('ab, ia, jb, a, b -> ij', rhs(qx, qy), B, B, w, w)
+    f = np.einsum('ia, jb, ab, a, b -> ij', B, B, rhs(qx, qy), w, w)
 
     return f.reshape(n**2)
 
@@ -448,6 +448,7 @@ def cg(matvec, b, x0, tol=1e-5, maxiter=10000):
     p = r.copy()
 
     it = 0
+
     while (it <= maxiter) and (np.linalg.norm(r, 2) > tol):
         Ap = matvec(A, p)
         alpha = (np.transpose(p).dot(r)) / (np.transpose(p).dot(Ap))
@@ -471,9 +472,9 @@ def test_cg(n, matvec, rhs, exact):
     *_, A = compute_two_dimensional_matrices(n)
     f = f_two_d(n, rhs, x)
 
-    approx_cg = cg(matvec, f, np.ones(n**2))
+    approx = cg(matvec, f, np.ones(n**2))
 
-    error = np.linalg.norm(exact(xg, yg) - approx_cg, ord=2)
+    error = np.linalg.norm(exact(xg, yg) - approx, ord=2)
 
     return error
 
@@ -531,9 +532,6 @@ plt.loglog(all_n, error, 'o-')
 # Make a comparison of the timings between using the full two dimensional matrix `A` to compute the matrix vector product, VS using the compressed version above, as we increase `n` from 50 to 100.
 
 # + pycharm={"name": "#%%\n"}
-def matvec(A, v):
-    return A.dot(v)
-
 def matvec_compressed(M, K, v):
 
     v = v.reshape((n, n))
@@ -549,13 +547,6 @@ def matvec_compressed(M, K, v):
 
 # -
 
-n = 50
-K, M, A = compute_one_dimensional_matrices(n)
-KK, MM, AA = compute_two_dimensional_matrices(n)
-v_one_d = np.random.rand(n)
-v_two_d = np.random.rand(n**2)
-
-
 def get_time(n, comp=False):
 
     start = time.time()
@@ -566,6 +557,7 @@ def get_time(n, comp=False):
 
 
 # +
+# %%time
 times_matvec = []
 times_matvec_comp = []
 
@@ -585,7 +577,7 @@ plt.plot(range(50, 100), times_matvec_comp, color='red', label='compressed')
 plt.legend()
 plt.grid()
 
-# + [markdown] pycharm={"name": "#%% md\n"}
+# + [markdown] pycharm={"name": "#%% md\n"} tags=[]
 # ### 6. "Matrix free" evaluation for three dimensional problems (mandatory for MHPC, optional for others)
 #
 # Looking at https://www.geeksforgeeks.org/running-python-script-on-gpu/, implement the same matrix free solver for three dimensional problems, exploiting just in time compilation, numba, and (optionally) GPU acceleration (if you have access to a GPU). 
@@ -598,6 +590,3 @@ plt.grid()
 # 4. (optional) matrix free, numba+jit on GPU (measure time 100 applications of matvec(v))
 #
 # Comment on your findings.
-
-# + pycharm={"name": "#%%\n"}
-# your code here
