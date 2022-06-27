@@ -374,7 +374,7 @@ def f_two_d(n, rhs, x):
         v = lagrange(x, ei)
         B[i, :] = v(q)
 
-    f = np.einsum('ia, jb, ab, a, b -> ij', B, B, rhs(qx, qy), w, w)  # 2D extension of the 1D case
+    f = np.einsum('ia, jb, ab, a, b -> ij', B, B, rhs(qx, qy), w, w)  # 2D extension of the 1D equation
 
     return f.reshape(n**2)
 
@@ -439,20 +439,20 @@ def matvec(A, v):
 
 
 # + pycharm={"name": "#%%\n"}
-def cg(matvec, b, x0, tol=1e-7, maxiter=10000):
+def cg(matvec, b, x0, tol=1e-10, maxiter=10000):
 
     n = int(np.sqrt(len(b)))
     *_, A = compute_two_dimensional_matrices(n)
-    P = np.identity(n**2)
+    P = np.identity(n**2)  # Preconditioner
 
     x = x0.copy()
     r = b - matvec(A, x)
-    z = np.transpose(P).dot(r)
+    z = np.linalg.solve(P, r)
     p = z
 
     it = 0
 
-    while (it <= maxiter) and (np.linalg.norm(r, 2) > tol):
+    while (it < maxiter) and (np.linalg.norm(r, 2) > tol):
         Ap = matvec(A, p)
         alpha = (np.transpose(p).dot(r)) / (np.transpose(p).dot(Ap))
         x = x + alpha * p
@@ -464,7 +464,7 @@ def cg(matvec, b, x0, tol=1e-7, maxiter=10000):
 
     x = x.reshape((n, n))
 
-    return x
+    return x, it, np.linalg.norm(r, 2)
 
 
 # -
@@ -476,17 +476,20 @@ def test_cg(n, matvec, rhs, exact):
     *_, A = compute_two_dimensional_matrices(n)
     f = f_two_d(n, rhs, x)
 
-    approx = cg(matvec, f, np.ones(n**2))
+    approx, it, res = cg(matvec, f, np.ones(n**2))
     error = np.linalg.norm(exact(xg, yg) - approx, ord=2)
 
-    return error
+    return error, it, res
 
 
 # +
 error = []
 all_n = range(10, 21)
+
 for n in all_n:
-    error.append(test_cg(n, matvec, rhs_two_d, exact_two_d))
+    err, it, res = test_cg(n, matvec, rhs_two_d, exact_two_d)
+    print(f'n: {n} \t iters: {it} \t residual: {res}')
+    error.append(err)
 
 plt.loglog(all_n, error, 'o-')
 
