@@ -439,7 +439,7 @@ def matvec(A, v):
 
 
 # + pycharm={"name": "#%%\n"}
-def cg(matvec, b, x0, tol=1e-5, maxiter=10000):
+def cg(matvec, b, x0, tol=1e-7, maxiter=10000):
 
     n = int(np.sqrt(len(b)))
     *_, A = compute_two_dimensional_matrices(n)
