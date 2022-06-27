@@ -374,7 +374,7 @@ def f_two_d(n, rhs, x):
         v = lagrange(x, ei)
         B[i, :] = v(q)
 
-    f = np.einsum('ia, jb, ab, a, b -> ij', B, B, rhs(qx, qy), w, w)
+    f = np.einsum('ia, jb, ab, a, b -> ij', B, B, rhs(qx, qy), w, w)  # 2D extension of the 1D case
 
     return f.reshape(n**2)
 
@@ -394,6 +394,7 @@ def compute_error_two_d(n, exact, rhs, print_err=False, plot=False):
     xg, yg = np.meshgrid(x, x)
     *_, A = compute_two_dimensional_matrices(n)
     f = f_two_d(n, rhs, x)
+
     approx = np.linalg.solve(A, f).reshape((n, n))
     error = np.linalg.norm(exact(xg, yg) - approx, ord=2)
 
@@ -418,7 +419,7 @@ plt.loglog(all_n, error, 'o-')
 compute_error_two_d(30, exact_two_d, rhs_two_d, plot=True)
 
 
-# + [markdown] pycharm={"name": "#%% md\n"}
+# + [markdown] pycharm={"name": "#%% md\n"} tags=[]
 # ### 4. Conjugate gradient
 #
 # The conjugate gradient method does not require the knowledge of the matrix, but only of the result of the matrix vector product with the system matrix A. 
@@ -442,10 +443,12 @@ def cg(matvec, b, x0, tol=1e-5, maxiter=10000):
 
     n = int(np.sqrt(len(b)))
     *_, A = compute_two_dimensional_matrices(n)
+    P = np.identity(n**2)
 
     x = x0.copy()
     r = b - matvec(A, x)
-    p = r.copy()
+    z = np.transpose(P).dot(r)
+    p = z
 
     it = 0
 
@@ -454,8 +457,9 @@ def cg(matvec, b, x0, tol=1e-5, maxiter=10000):
         alpha = (np.transpose(p).dot(r)) / (np.transpose(p).dot(Ap))
         x = x + alpha * p
         r = r - alpha * Ap
-        beta = (np.transpose(Ap).dot(r)) / (np.transpose(Ap).dot(p))
-        p = r - beta * p
+        z = np.linalg.inv(P).dot(r)
+        beta = (np.transpose(Ap).dot(z)) / (np.transpose(Ap).dot(p))
+        p = z - beta * p
         it += 1
 
     x = x.reshape((n, n))
@@ -473,7 +477,6 @@ def test_cg(n, matvec, rhs, exact):
     f = f_two_d(n, rhs, x)
 
     approx = cg(matvec, f, np.ones(n**2))
-
     error = np.linalg.norm(exact(xg, yg) - approx, ord=2)
 
     return error
@@ -536,8 +539,8 @@ def matvec_compressed(M, K, v):
 
     v = v.reshape((n, n))
 
-    Mv = M.dot(v)  # result is n x n
-    Kv = K.dot(v)  # result is n x n
+    Mv = M.dot(v)
+    Kv = K.dot(v)
 
     u = K.dot(Mv)
     u += M.dot(Kv) + M.dot(Mv)
@@ -553,27 +556,27 @@ def get_time(n, comp=False):
     _ = matvec_compressed(M, K, v_two_d) if comp else matvec(AA, v_two_d)
     end = time.time()
 
-    return end-start
+    return end - start
 
 
 # +
 # %%time
 times_matvec = []
 times_matvec_comp = []
+all_n = range(50, 101)
 
-for n in range(50, 100):
-
+for n in all_n:
+    
     K, M, A = compute_one_dimensional_matrices(n)
     KK, MM, AA = compute_two_dimensional_matrices(n)
-    v_one_d = np.random.rand(n)
     v_two_d = np.random.rand(n**2)
-
+    
     times_matvec.append(get_time(n, comp=False))
     times_matvec_comp.append(get_time(n, comp=True))
 # -
 
-plt.plot(range(50, 100), times_matvec, color='blue', label='standard')
-plt.plot(range(50, 100), times_matvec_comp, color='red', label='compressed')
+plt.plot(all_n, times_matvec, color='blue', label='standard')
+plt.plot(all_n, times_matvec_comp, color='red', label='compressed')
 plt.legend()
 plt.grid()
 
