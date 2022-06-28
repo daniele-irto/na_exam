@@ -538,7 +538,7 @@ plt.loglog(all_n, error, 'o-')
 # Make a comparison of the timings between using the full two dimensional matrix `A` to compute the matrix vector product, VS using the compressed version above, as we increase `n` from 50 to 100.
 
 # + pycharm={"name": "#%%\n"}
-def matvec_compressed(M, K, v):
+def matvec_compressed(n, M, K, v):
 
     v = v.reshape((n, n))
 
@@ -546,7 +546,8 @@ def matvec_compressed(M, K, v):
     Kv = K.dot(v)
 
     u = K.dot(Mv)
-    u += M.dot(Kv) + M.dot(Mv)
+    u += M.dot(Kv)
+    u += M.dot(Mv)
 
     return u.reshape((n**2,))
 
@@ -556,24 +557,29 @@ def matvec_compressed(M, K, v):
 def get_time(n, comp=False):
 
     start = time.time()
-    _ = matvec_compressed(M, K, v_two_d) if comp else matvec(AA, v_two_d)
+    _ = matvec_compressed(n, M, K, v_two_d) if comp else matvec(AA, v_two_d)
     end = time.time()
+    time1 = end - start
 
-    return end - start
+    start = time.time()
+    _ = matvec_compressed(n, M, K, v_two_d) if comp else matvec(AA, v_two_d)
+    end = time.time()
+    time2 = end-start
+
+    return min(time1, time2)
 
 
-# +
-# %%time
+# + tags=[]
 times_matvec = []
 times_matvec_comp = []
 all_n = range(50, 101)
 
 for n in all_n:
-    
-    K, M, A = compute_one_dimensional_matrices(n)
+
+    K, M, _ = compute_one_dimensional_matrices(n)
     KK, MM, AA = compute_two_dimensional_matrices(n)
     v_two_d = np.random.rand(n**2)
-    
+
     times_matvec.append(get_time(n, comp=False))
     times_matvec_comp.append(get_time(n, comp=True))
 # -
