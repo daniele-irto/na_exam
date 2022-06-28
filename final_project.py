@@ -218,22 +218,23 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.interpolate import lagrange
 import time
-# %config InlineBackend.figure_formats = ['svg']
+
 
 def get_e(n, i):
     e = np.zeros((n))
-    e[i] = 1
+    e[i] = 1.0
     return e
 
 
 # + pycharm={"name": "#%%\n"}
-def compute_one_dimensional_matrices(n):
+def compute_one_dimensional_matrices(n, nq=None):
 
-    q, w = np.polynomial.legendre.leggauss(n)
+    nq = nq if nq else n-1  # number of quadrature points and weights
+    q, w = np.polynomial.legendre.leggauss(nq)
     x = np.polynomial.chebyshev.chebpts2(n)
 
-    B = np.zeros((n, n))
-    D = np.zeros((n, n))
+    B = np.zeros((n, nq))
+    D = np.zeros((n, nq))
 
     for i in range(n):
         ei = get_e(n, i)
@@ -265,9 +266,10 @@ def compute_one_dimensional_matrices(n):
 # Plot the error as a function of $n$, for $n$ in $[10,...,20]$.
 # -
 
-def f_one_d(n, nq, rhs, x):
+# Returns f in 1D, according to the formulas of the discrete weak formulation
+def f_one_d(n, rhs, x, nq=None):
 
-    nq = nq if nq else n
+    nq = nq if nq else n-1
     q, w = np.polynomial.legendre.leggauss(nq)
     B = np.zeros((n, nq))
 
@@ -290,11 +292,11 @@ def rhs_one_d(x):
     return (1 + np.pi**2) * exact_one_d(x)
 
 
-def compute_error_one_d(n, exact, rhs, print_err=False, plot=False):
+def compute_error_one_d(n, exact, rhs, plot=False):
 
     x = np.polynomial.chebyshev.chebpts2(n)
     *_, A = compute_one_dimensional_matrices(n)
-    f = f_one_d(n, 2*n, rhs, x)
+    f = f_one_d(n, rhs, x, 5*n)
     approx = np.linalg.solve(A, f)
 
     error = np.linalg.norm(exact(x) - approx, ord=2)
@@ -303,9 +305,6 @@ def compute_error_one_d(n, exact, rhs, print_err=False, plot=False):
         plt.plot(x, exact(x), color='green', label='exact')
         plt.plot(x, approx, color='red', label='approx')
         plt.legend()
-
-    if print_err:
-        print(f'{n}: {error}')
 
     return error
 
@@ -316,7 +315,7 @@ all_n = range(10, 21)
 for n in all_n:
     error.append(compute_error_one_d(n, exact_one_d, rhs_one_d))
 
-plt.loglog(all_n, error, 'o-')
+_ = plt.loglog(all_n, error, 'o-')
 
 
 # + [markdown] pycharm={"name": "#%% md\n"}
@@ -325,9 +324,9 @@ plt.loglog(all_n, error, 'o-')
 # Write a function that, given the number of Chebishev points `n` per each coordinate direction, returns `K`, `M`, and `A` for a two dimensional problem, integrated exactly using Gauss quadrature formulas with the correct number of quadrature points (as matrices, i.e., reshaped to be two dimensional)
 
 # + pycharm={"name": "#%%\n"} tags=[]
-def compute_two_dimensional_matrices(n):
+def compute_two_dimensional_matrices(n, nq=None):
 
-    K, M, _ = compute_one_dimensional_matrices(n)
+    K, M, _ = compute_one_dimensional_matrices(n, nq)
 
     KM = np.einsum('ik, jl -> ijkl', K, M)
     MK = np.einsum('ik, jl -> ijkl', M, K)
@@ -362,9 +361,10 @@ def compute_two_dimensional_matrices(n):
 # Plot the error as a function of $n$, for $n$ in $[10,...,20]$.
 # -
 
-def f_two_d(n, rhs, x):
+# Returns f in 2D, as extension of the 1D case
+def f_two_d(n, rhs, x, nq=None):
 
-    nq = 2*n
+    nq = nq if nq else n-1
     q, w = np.polynomial.legendre.leggauss(nq)
     qx, qy = np.meshgrid(q, q)
     B = np.empty((n, nq))
@@ -374,7 +374,7 @@ def f_two_d(n, rhs, x):
         v = lagrange(x, ei)
         B[i, :] = v(q)
 
-    f = np.einsum('ia, jb, ab, a, b -> ij', B, B, rhs(qx, qy), w, w)  # 2D extension of the 1D equation
+    f = np.einsum('ia, jb, ab, a, b -> ij', B, B, rhs(qx, qy), w, w)
 
     return f.reshape(n**2)
 
@@ -388,12 +388,12 @@ def rhs_two_d(x, y):
     return (1 + 2*(np.pi**2)) * exact_two_d(x, y)
 
 
-def compute_error_two_d(n, exact, rhs, print_err=False, plot=False):
+def compute_error_two_d(n, exact, rhs, plot=False):
 
     x = np.polynomial.chebyshev.chebpts2(n)
     xg, yg = np.meshgrid(x, x)
-    *_, A = compute_two_dimensional_matrices(n)
-    f = f_two_d(n, rhs, x)
+    *_, A = compute_two_dimensional_matrices(n, 5*n)
+    f = f_two_d(n, rhs, x, 5*n)
 
     approx = np.linalg.solve(A, f).reshape((n, n))
     error = np.linalg.norm(exact(xg, yg) - approx, ord=2)
@@ -401,22 +401,21 @@ def compute_error_two_d(n, exact, rhs, print_err=False, plot=False):
     if plot:
         plt.imshow(approx.reshape((n, n)))
 
-    if print_err:
-        print(f'{n}: {error}')
-
     return error
 
 
 # +
 error = []
 all_n = range(10, 21)
+
 for n in all_n:
     error.append(compute_error_two_d(n, exact_two_d, rhs_two_d))
 
-plt.loglog(all_n, error, 'o-')
+_ = plt.loglog(all_n, error, 'o-')
 # -
 
-compute_error_two_d(30, exact_two_d, rhs_two_d, plot=True)
+# Check that the result is similar to the provided solution
+_ = compute_error_two_d(30, exact_two_d, rhs_two_d, plot=True)
 
 
 # + [markdown] pycharm={"name": "#%% md\n"} tags=[]
@@ -442,8 +441,8 @@ def matvec(A, v):
 def cg(matvec, b, x0, tol=1e-10, maxiter=10000):
 
     n = int(np.sqrt(len(b)))
-    *_, A = compute_two_dimensional_matrices(n)
-    P = np.identity(n**2)  # Preconditioner
+    *_, A = compute_two_dimensional_matrices(n, n)
+    P = np.identity(n**2)  # Preconditioner, set to identity matrix in this case
 
     x = x0.copy()
     r = b - matvec(A, x)
@@ -469,17 +468,17 @@ def cg(matvec, b, x0, tol=1e-10, maxiter=10000):
 
 # -
 
+# Compute L2 norm between exact function and conjugate gradient approximation
 def test_cg(n, matvec, rhs, exact):
 
     x = np.polynomial.chebyshev.chebpts2(n)
     xg, yg = np.meshgrid(x, x)
-    *_, A = compute_two_dimensional_matrices(n)
-    f = f_two_d(n, rhs, x)
+    f = f_two_d(n, rhs, x, 5*n)
 
     approx, it, res = cg(matvec, f, np.ones(n**2))
-    error = np.linalg.norm(exact(xg, yg) - approx, ord=2)
+    err = np.linalg.norm(exact(xg, yg) - approx, ord=2)
 
-    return error, it, res
+    return err, it, res
 
 
 # +
@@ -491,7 +490,7 @@ for n in all_n:
     print(f'n: {n} \t iters: {it} \t residual: {res}')
     error.append(err)
 
-plt.loglog(all_n, error, 'o-')
+_ = plt.loglog(all_n, error, 'o-')
 
 
 # + [markdown] pycharm={"name": "#%% md\n"}
@@ -554,19 +553,18 @@ def matvec_compressed(n, M, K, v):
 
 # -
 
+# Benchmark for matvec standard vs compressed
 def get_time(n, comp=False):
 
-    start = time.time()
-    _ = matvec_compressed(n, M, K, v_two_d) if comp else matvec(AA, v_two_d)
-    end = time.time()
-    time1 = end - start
+    times = []
 
-    start = time.time()
-    _ = matvec_compressed(n, M, K, v_two_d) if comp else matvec(AA, v_two_d)
-    end = time.time()
-    time2 = end-start
+    for i in range(3):  # Repeat benchmark three times then take the best one
+        start = time.time()
+        _ = matvec_compressed(n, M, K, v_two_d) if comp else matvec(AA, v_two_d)
+        end = time.time()
+        times.append(end - start)
 
-    return min(time1, time2)
+    return min(times)
 
 
 # + tags=[]
@@ -584,7 +582,7 @@ for n in all_n:
     times_matvec_comp.append(get_time(n, comp=True))
 # -
 
-plt.plot(all_n, times_matvec, color='blue', label='standard')
+plt.plot(all_n, times_matvec, color='blue', label='full')
 plt.plot(all_n, times_matvec_comp, color='red', label='compressed')
 plt.legend()
 plt.xlabel("n")
