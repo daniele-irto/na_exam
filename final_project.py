@@ -218,7 +218,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.interpolate import lagrange
 import time
-
+# %config InlineBackend.figure_formats = ['svg']
 
 def get_e(n, i):
     e = np.zeros((n))
