@@ -26,9 +26,9 @@
 # - \Delta u  + u = f, \text{ in } \Omega
 # $$
 #
-# $
+# $$
 # \frac{\partial u}{\partial n} = 0 \text{ on } \partial \Omega
-# $
+# $$
 #
 # using Chebyshev spectral elements, and in a matrix-free framework.
 #
@@ -587,6 +587,8 @@ for n in all_n:
 plt.plot(all_n, times_matvec, color='blue', label='standard')
 plt.plot(all_n, times_matvec_comp, color='red', label='compressed')
 plt.legend()
+plt.xlabel("n")
+plt.ylabel("Time [sec]")
 plt.grid()
 
 # + [markdown] pycharm={"name": "#%% md\n"} tags=[]
