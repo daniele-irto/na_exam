@@ -553,8 +553,8 @@ def matvec_compressed(n, M, K, v):
 
 # -
 
-# Benchmark for matvec standard vs compressed
-def get_time(n, comp=False):
+# Returns best time after three repeated runs of matvec full or compressed
+def get_best_time(n, comp=False):
 
     times = []
 
@@ -568,6 +568,7 @@ def get_time(n, comp=False):
 
 
 # + tags=[]
+# Get best times of execution for matvec full and compressed
 times_matvec = []
 times_matvec_comp = []
 all_n = range(50, 101)
@@ -578,15 +579,16 @@ for n in all_n:
     KK, MM, AA = compute_two_dimensional_matrices(n, n)
     v_two_d = np.random.rand(n**2)
 
-    times_matvec.append(get_time(n, comp=False))
-    times_matvec_comp.append(get_time(n, comp=True))
+    times_matvec.append(get_best_time(n, comp=False))
+    times_matvec_comp.append(get_best_time(n, comp=True))
 # -
 
-plt.plot(all_n, times_matvec, color='blue', label='full')
-plt.plot(all_n, times_matvec_comp, color='red', label='compressed')
+plt.plot(all_n, times_matvec, 'o-', color='blue', label='full', markersize=3)
+plt.plot(all_n, times_matvec_comp, 'o-', color='red', label='compressed', markersize=3)
 plt.legend()
-plt.xlabel("n")
-plt.ylabel("Time [sec]")
+plt.title('Best time of execution after 3 runs of matvec full / compressed')
+plt.xlabel('n')
+plt.ylabel('Time [sec]')
 plt.grid()
 
 # + [markdown] pycharm={"name": "#%% md\n"} tags=[]
