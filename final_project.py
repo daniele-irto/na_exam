@@ -558,7 +558,7 @@ def get_best_time(n, comp=False):
 
     times = []
 
-    for i in range(3):  # Repeat benchmark three times then take the best one
+    for i in range(3):
         start = time.time()
         _ = matvec_compressed(n, M, K, v_two_d) if comp else matvec(AA, v_two_d)
         end = time.time()
@@ -590,6 +590,8 @@ plt.title('Best time of execution after 3 runs of matvec full / compressed')
 plt.xlabel('n')
 plt.ylabel('Time [sec]')
 plt.grid()
+
+# **Note:** these times have been obtained by running this notebook on an M1 MacBook Pro with 16GB RAM.
 
 # + [markdown] pycharm={"name": "#%% md\n"} tags=[]
 # ### 6. "Matrix free" evaluation for three dimensional problems (mandatory for MHPC, optional for others)
