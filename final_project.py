@@ -574,8 +574,8 @@ all_n = range(50, 101)
 
 for n in all_n:
 
-    K, M, _ = compute_one_dimensional_matrices(n)
-    KK, MM, AA = compute_two_dimensional_matrices(n)
+    K, M, _ = compute_one_dimensional_matrices(n, n)
+    KK, MM, AA = compute_two_dimensional_matrices(n, n)
     v_two_d = np.random.rand(n**2)
 
     times_matvec.append(get_time(n, comp=False))
